@@ -3,8 +3,8 @@ var args = require('yargs').argv;
 var stylish = require('jshint-stylish');
 var config = require('./gulp.config')();
 var del = require('del');
-
 var $ = require('gulp-load-plugins')({lazy: true});
+var port = process.env.PORT || config.defaultPort;
 
 gulp.task('vet', function() {
 
@@ -62,6 +62,35 @@ gulp.task('inject', ['wiredep', 'styles'], function() {
         .pipe($.inject(gulp.src(config.css)))
         .pipe(gulp.dest(config.client));
 
+});
+
+gulp.task('serve-dev', ['inject'], function() {
+    var isDev = true;
+
+    var nodeOptions = {
+        script: config.nodeServer,
+        delayTime: 1,
+        env: {
+            'PORT': port,
+            'NODE_ENV': isDev ? 'dev' : 'build'
+        },
+        watch: [config.server] //TODO degine the files to restart on
+    };
+
+    return $.nodemon(nodeOptions)
+        .on('restart', ['vet'], function(ev) {
+            log('*** nodemon restarted');
+            log('files changed on restart:\n' + ev);
+        })
+        .on('start', function() {
+            log('*** nodemon started');
+        })
+        .on('crash', function() {
+            log('*** nodemon crashed: script crashed for some reason');
+        })
+        .on('exit', function() {
+            log('*** nodemon exited cleanly');
+        });
 });
 
 ///////////////////
