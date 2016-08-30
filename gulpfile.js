@@ -132,6 +132,9 @@ gulp.task('optimize', ['inject', 'fonts', 'images'], function () {
     var templateCache = config.temp + config.templateCache.file;
     // var cssFilter = $.filter('**/*.css');
 
+    var jsLibFilter = '**/' + config.optimized.lib;
+    var jsAppFilter = '**/' + config.optimized.app;
+
     return gulp
         .src(config.index)
         .pipe($.plumber())
@@ -140,9 +143,9 @@ gulp.task('optimize', ['inject', 'fonts', 'images'], function () {
         }))
         .pipe($.useref({searchPath: './'}))
         .pipe($.if('*.css',$.csso()))
-        .pipe($.if('*.js',$.uglify()))
-        // .pipe(cssFilter)
-        // .pipe($.csso())
+        .pipe($.if(jsAppFilter,$.ngAnnotate()))
+        .pipe($.if(jsLibFilter,$.uglify()))
+        .pipe($.if(jsAppFilter,$.uglify()))
         .pipe(gulp.dest(config.build));
 });
 

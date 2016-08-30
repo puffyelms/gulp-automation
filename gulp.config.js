@@ -32,6 +32,13 @@ module.exports = function() {
         /**
          * template cache
          */
+        optimized: {
+            app: 'app.js',
+            lib: 'lib.js'
+        },
+        /**
+         * template cache
+         */
         templateCache: {
             file: 'templates.js',
             options: {
