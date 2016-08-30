@@ -36,14 +36,14 @@ gulp.task('styles', ['clean-styles'], function() {
 });
 
 gulp.task('images', ['clean-images'], function() {
-    log('Copying and compressing the images')
+    log('Copying and compressing the images');
     return gulp.src(config.images)
         .pipe($.imagemin({optimizationLevel: 4}))
         .pipe(gulp.dest(config.build + 'images'));
 });
 
 gulp.task('fonts', ['clean-fonts'], function() {
-    log('Copying fonts')
+    log('Copying fonts');
     return gulp.src(config.fonts)
         .pipe(gulp.dest(config.build + 'fonts'));
 });
@@ -130,6 +130,7 @@ gulp.task('optimize', ['inject'], function () {
 
     // var assets = $.useref.assets({searchPath: './'});
     var templateCache = config.temp + config.templateCache.file;
+    // var cssFilter = $.filter('**/*.css');
 
     return gulp
         .src(config.index)
@@ -138,6 +139,10 @@ gulp.task('optimize', ['inject'], function () {
             starttag: '<!-- inject:templates:js -->'
         }))
         .pipe($.useref({searchPath: './'}))
+        .pipe($.if('*.css',$.csso()))
+        .pipe($.if('*.js',$.uglify()))
+        // .pipe(cssFilter)
+        // .pipe($.csso())
         .pipe(gulp.dest(config.build));
 });
 
@@ -200,7 +205,6 @@ function startBrowserSync(isDev) {
                 changeEvent(event);
             });
     }
-
 
     var options = {
         proxy: 'localhost:' + port,
