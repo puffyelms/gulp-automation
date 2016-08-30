@@ -117,8 +117,33 @@ gulp.task('inject', ['wiredep', 'styles', 'templatecache'], function() {
 
 });
 
+gulp.task('serve-build', ['optimize'], function() {
+    serve(false /* isDev */);
+});
+
 gulp.task('serve-dev', ['inject'], function() {
-    var isDev = true;
+    serve(true /* isDev */);
+});
+
+gulp.task('optimize', ['inject'], function () {
+    log('Optimizing the javascript, css, html');
+
+    // var assets = $.useref.assets({searchPath: './'});
+    var templateCache = config.temp + config.templateCache.file;
+
+    return gulp
+        .src(config.index)
+        .pipe($.plumber())
+        .pipe($.inject(gulp.src(templateCache, {read: false}), {
+            starttag: '<!-- inject:templates:js -->'
+        }))
+        .pipe($.useref({searchPath: './'}))
+        .pipe(gulp.dest(config.build));
+});
+
+///////////////////
+
+function serve(isDev) {
 
     var nodeOptions = {
         script: config.nodeServer,
@@ -141,7 +166,7 @@ gulp.task('serve-dev', ['inject'], function() {
         })
         .on('start', function() {
             log('*** nodemon started');
-            startBrowserSync();
+            startBrowserSync(isDev);
         })
         .on('crash', function() {
             log('*** nodemon crashed: script crashed for some reason');
@@ -149,51 +174,42 @@ gulp.task('serve-dev', ['inject'], function() {
         .on('exit', function() {
             log('*** nodemon exited cleanly');
         });
-});
-
-gulp.task('optimize', ['inject'], function () {
-    log('Optimizing the javascript, css, html');
-
-    // var assets = $.useref.assets({searchPath: './'});
-    var templateCache = config.temp + config.templateCache.file;
-
-    return gulp
-        .src(config.index)
-        .pipe($.plumber())
-        .pipe($.inject(gulp.src(templateCache, {read: false}), {
-            starttag: '<!-- inject:templates:js -->'
-        }))
-        .pipe($.useref({searchPath: './'}))
-        .pipe(gulp.dest(config.build));
-});
-
-///////////////////
+}
 
 function changeEvent(event) {
     var srcPattern = new RegExp('/.*(?=/' + config.source + ')/');
     log('File ' + event.path.replace(srcPattern, '') + ' ' + event.type);
 }
 
-function startBrowserSync() {
+function startBrowserSync(isDev) {
     if (args.nosync || browserSync.active) {
         return;
     }
     log('Starting browser-sync on port ' + port);
 
-    // call less compile when less file changes.  BrowserSync is already watching the .css file below
-    gulp.watch([config.less], ['styles'])
-        .on('change', function(event) {
-            changeEvent(event);
-        });
+    if (isDev) {
+        // call less compile when less file changes.  BrowserSync is already watching the .css file below
+        gulp.watch([config.less], ['styles'])
+            .on('change', function(event) {
+                changeEvent(event);
+            });
+    } else {
+        // call less compile when less file changes.  BrowserSync is already watching the .css file below
+        gulp.watch([config.less, config.js, config.html], ['optimize', browserSync.reload])
+            .on('change', function(event) {
+                changeEvent(event);
+            });
+    }
+
 
     var options = {
         proxy: 'localhost:' + port,
         port: 3000,
-        files: [
+        files: isDev ? [
             config.client + '**/*.*',
             '!' + config.less,
             config.temp + '**/*.css'
-        ],
+        ] : [],
         ghostMode: {
             clicks: true,
             location: false,
