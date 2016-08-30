@@ -154,7 +154,7 @@ gulp.task('serve-dev', ['inject'], function() {
 gulp.task('optimize', ['inject'], function () {
     log('Optimizing the javascript, css, html');
 
-    var assets = $.useref.assets({searchPath: './'})
+    // var assets = $.useref.assets({searchPath: './'});
     var templateCache = config.temp + config.templateCache.file;
 
     return gulp
@@ -163,8 +163,7 @@ gulp.task('optimize', ['inject'], function () {
         .pipe($.inject(gulp.src(templateCache, {read: false}), {
             starttag: '<!-- inject:templates:js -->'
         }))
-        .pipe(assets)
-        .pipe(assets.restore())
+        .pipe($.useref({searchPath: './'}))
         .pipe(gulp.dest(config.build));
 });
 
