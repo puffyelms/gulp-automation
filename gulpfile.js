@@ -125,7 +125,7 @@ gulp.task('serve-dev', ['inject'], function() {
     serve(true /* isDev */);
 });
 
-gulp.task('optimize', ['inject'], function () {
+gulp.task('optimize', ['inject', 'fonts', 'images'], function () {
     log('Optimizing the javascript, css, html');
 
     // var assets = $.useref.assets({searchPath: './'});
