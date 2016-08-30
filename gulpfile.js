@@ -1,5 +1,6 @@
 var gulp = require('gulp');
 var args = require('yargs').argv;
+var browserSync = require('browser-sync');
 var stylish = require('jshint-stylish');
 var config = require('./gulp.config')();
 var del = require('del');
@@ -81,9 +82,14 @@ gulp.task('serve-dev', ['inject'], function() {
         .on('restart', ['vet'], function(ev) {
             log('*** nodemon restarted');
             log('files changed on restart:\n' + ev);
+            setTimeout(function() {
+                browserSync.notify('reloading now...');
+                browserSync.reload({stream: false});
+            }, config.browserSyncDelay);
         })
         .on('start', function() {
             log('*** nodemon started');
+            startBrowserSync();
         })
         .on('crash', function() {
             log('*** nodemon crashed: script crashed for some reason');
@@ -94,6 +100,47 @@ gulp.task('serve-dev', ['inject'], function() {
 });
 
 ///////////////////
+
+function changeEvent(event) {
+    var srcPattern = new RegExp('/.*(?=/' + config.source + ')/');
+    log('File ' + event.path.replace(srcPattern, '') + ' ' + event.type);
+}
+
+function startBrowserSync() {
+    if (args.nosync || browserSync.active) {
+        return;
+    }
+    log('Starting browser-sync on port ' + port);
+
+    // call less compile when less file changes.  BrowserSync is already watching the .css file below
+    gulp.watch([config.less], ['styles'])
+        .on('change', function(event) {
+            changeEvent(event);
+        });
+
+    var options = {
+        proxy: 'localhost:' + port,
+        port: 3000,
+        files: [
+            config.client + '**/*.*',
+            '!' + config.less,
+            config.temp + '**/*.css'
+        ],
+        ghostMode: {
+            clicks: true,
+            location: false,
+            forms: true,
+            scroll: true
+        },
+        injectChanges: true,
+        logFileChanges: 'debug',
+        logPrefix: 'gulp-patterns',
+        notify: true,
+        reloadDelay: 1000
+    };
+
+    browserSync(options);
+}
 
 // function errorLogger(error) {
 //     log('*** Start of Error ***');
