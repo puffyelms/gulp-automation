@@ -105,7 +105,7 @@ gulp.task('wiredep', function() {
 
 });
 
-gulp.task('inject', ['wiredep', 'styles'], function() {
+gulp.task('inject', ['wiredep', 'styles', 'templatecache'], function() {
     log('Wire up the app cess in the html, and call wiredep');
     var options = config.getWiredepDefaultOptions();
     var wiredep = require('wiredep').stream;
@@ -149,6 +149,23 @@ gulp.task('serve-dev', ['inject'], function() {
         .on('exit', function() {
             log('*** nodemon exited cleanly');
         });
+});
+
+gulp.task('optimize', ['inject'], function () {
+    log('Optimizing the javascript, css, html');
+
+    var assets = $.useref.assets({searchPath: './'})
+    var templateCache = config.temp + config.templateCache.file;
+
+    return gulp
+        .src(config.index)
+        .pipe($.plumber())
+        .pipe($.inject(gulp.src(templateCache, {read: false}), {
+            starttag: '<!-- inject:templates:js -->'
+        }))
+        .pipe(assets)
+        .pipe(assets.restore())
+        .pipe(gulp.dest(config.build));
 });
 
 ///////////////////
