@@ -4,6 +4,8 @@ var browserSync = require('browser-sync');
 var stylish = require('jshint-stylish');
 var config = require('./gulp.config')();
 var del = require('del');
+var path = require('path');
+var _ = require('lodash');
 var $ = require('gulp-load-plugins')({lazy: true});
 var port = process.env.PORT || config.defaultPort;
 
@@ -148,7 +150,7 @@ gulp.task('bump', function() {
 
 });
 
-gulp.task('serve-build', ['optimize'], function() {
+gulp.task('serve-build', ['build'], function() {
     serve(false /* isDev */);
 });
 
@@ -156,7 +158,28 @@ gulp.task('serve-dev', ['inject'], function() {
     serve(true /* isDev */);
 });
 
-gulp.task('optimize', ['inject', 'fonts', 'images'], function () {
+gulp.task('test', ['vet', 'templatecache'], function(done) {
+    startTests(true /* singleRun */, done);
+});
+
+gulp.task('autotest', ['vet', 'templatecache'], function(done) {
+    startTests(false /* singleRun */, done);
+});
+
+gulp.task('build', ['optimize', 'images', 'fonts'], function() {
+    log('Building everything');
+
+    var msg = {
+        title: 'gulp build',
+        subtitle: 'Deployed to the build folder',
+        message: 'Running `gulp server-build`'
+    };
+    del(config.temp);
+    log(msg);
+    notify(msg);
+});
+
+gulp.task('optimize', ['inject', 'test'], function () {
     log('Optimizing the javascript, css, html');
 
     // var assets = $.useref.assets({searchPath: './'});
@@ -186,10 +209,6 @@ gulp.task('optimize', ['inject', 'fonts', 'images'], function () {
         .pipe(gulp.dest(config.build))
         .pipe($.rev.manifest())
         .pipe(gulp.dest(config.build));
-});
-
-gulp.task('test', ['vet', 'templatecache'], function(done) {
-    startTests(true /* singleRun */, done);
 });
 
 ///////////////////
@@ -230,6 +249,17 @@ function serve(isDev) {
 function changeEvent(event) {
     var srcPattern = new RegExp('/.*(?=/' + config.source + ')/');
     log('File ' + event.path.replace(srcPattern, '') + ' ' + event.type);
+}
+
+function notify(options) {
+    var notifier = require('node-notifier');
+    var notifyOptions = {
+        sound: 'Bottle',
+        contentImage: path.join(__dirname, 'gulp.png'),
+        icon: path.join(__dirname, 'gulp.png')
+    };
+    _.assign(notifyOptions, options);
+    notifier.notify(notifyOptions);
 }
 
 function startBrowserSync(isDev) {
