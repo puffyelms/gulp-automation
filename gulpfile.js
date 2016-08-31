@@ -18,6 +18,7 @@ gulp.task('vet', function() {
         .src(config.alljs)
         .pipe($.if(args.verbose, $.print()))
         .pipe($.jscs())
+        .pipe($.jscs.reporter('console')) // new line
         .pipe($.jshint())
         .pipe($.jshint.reporter(stylish, {verbose: true}))
         .pipe($.jshint.reporter('fail'));
@@ -145,7 +146,6 @@ gulp.task('bump', function() {
         .pipe($.bump(options))
         .pipe(gulp.dest(config.root));
 
-
 });
 
 gulp.task('serve-build', ['optimize'], function() {
@@ -178,13 +178,18 @@ gulp.task('optimize', ['inject', 'fonts', 'images'], function () {
         .pipe($.if(jsAppFilter,$.ngAnnotate()))
         .pipe($.if(jsLibFilter,$.uglify()))
         .pipe($.if(jsAppFilter,$.uglify()))
-        .pipe($.if(jsCssFilter,$.rev()))
-        .pipe($.if(jsAppFilter,$.rev()))
-        .pipe($.if(jsLibFilter,$.rev()))
+        .pipe($.if('!*.html', $.rev())) // modify everything but html
+        // .pipe($.if(jsCssFilter,$.rev()))
+        // .pipe($.if(jsAppFilter,$.rev()))
+        // .pipe($.if(jsLibFilter,$.rev()))
         .pipe($.revReplace())
         .pipe(gulp.dest(config.build))
         .pipe($.rev.manifest())
         .pipe(gulp.dest(config.build));
+});
+
+gulp.task('test', ['vet', 'templatecache'], function(done) {
+    startTests(true /* singleRun */, done);
 });
 
 ///////////////////
@@ -198,7 +203,7 @@ function serve(isDev) {
             'PORT': port,
             'NODE_ENV': isDev ? 'dev' : 'build'
         },
-        watch: [config.server] //TODO degine the files to restart on
+        watch: [config.server]
     };
 
     return $.nodemon(nodeOptions)
@@ -269,6 +274,29 @@ function startBrowserSync(isDev) {
     };
 
     browserSync(options);
+}
+
+function startTests(singleRun, done) {
+    var karma = require('karma').server;
+    var excludeFiles = [];
+    var serverSpecs = config.serverIntegrationSpecs;
+
+    excludeFiles = serverSpecs;
+
+    karma.start({
+        configFile: __dirname + '/karma.conf.js',
+        exclude: excludeFiles,
+        singleRun: !!singleRun
+    }, karmaCompleted);
+
+    function karmaCompleted(karmaResult) {
+        log('Karma completed!');
+        if (karmaResult === 1) {
+            done('karma: test failed with code ' + karmaResult);
+        } else {
+            done();
+        }
+    }
 }
 
 // function errorLogger(error) {

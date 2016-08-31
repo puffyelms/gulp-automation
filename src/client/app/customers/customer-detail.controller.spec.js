@@ -13,7 +13,11 @@ describe('app.customers', function() {
         sinon.stub(dataservice, 'getCustomer')
             .returns($q.when(mockData.blackWidow))
             .withArgs(id);
-        controller = $controller('CustomerDetail');
+        controller = $controller('CustomerDetail',{
+            $stateParams: {
+                id: id
+            }
+        });
         $rootScope.$apply();
     });
 
